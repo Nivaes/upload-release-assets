@@ -1,91 +1,66 @@
 import * as core from "@actions/core";
 import * as github from "@actions/github";
-import * as Webhooks from "@octokit/webhooks";
-//import { WebhookPayload } from "@actions/github/lib/interfaces";
+import {Octokit} from "@octokit/core";
 
-//import { GitHub, context } from "@actions/github/lib/utils";
+import * as fs from "fs";
+import * as path from "path";
+
+import callbackGlob from "glob";
+import * as mimeTypes from "mime-types";
+
+async function glob(pattern: string): Promise<string[]> {
+  return await new Promise((resolve, reject) => {
+    return callbackGlob(pattern, (err, files) => {
+      if (err) return reject(err);
+      else {
+        if (files == null || files.length === 0) throw new Error("No files found.");
+        else return resolve(files);
+      }
+    });
+  });
+}
+
+async function uploadFile(octokit: Octokit, uploadUrl: string, assetPath: string): Promise<void> {
+  const assetName: string = path.basename(assetPath);
+
+  // Determine content-length for header to upload asset
+  const contentLength = (filePath: fs.PathLike) => fs.statSync(filePath).size;
+
+  // Guess mime type using mime-types package - or fallback to application/octet-stream
+  const assetContentType = mimeTypes.lookup(assetName) || "application/octet-stream";
+
+  //   // Setup headers for API call, see Octokit Documentation: https://octokit.github.io/rest.js/#octokit-routes-repos-upload-release-asset for more information
+  const headers = {"content-type": assetContentType, "content-length": contentLength(assetPath)};
+
+  // Upload a release asset
+  // API Documentation: https://developer.github.com/v3/repos/releases/#upload-a-release-asset
+  // Octokit Documentation: https://octokit.github.io/rest.js/#octokit-routes-repos-upload-release-asset
+  await octokit.repos.uploadReleaseAsset({
+    url: uploadUrl,
+    headers,
+    name: assetName,
+    data: (fs.readFileSync(assetPath) as unknown) as string
+  });
+}
 
 async function run(): Promise<void> {
   try {
-    if (github.context.eventName !== "release") {
-      core.info("Not assets download");
-      return;
-    }
+    const uploadUrl = core.getInput("upload_url", {required: true});
+    const targets = core.getInput("targets", {required: true});
 
-    const repository = github.context.repo.repo;
-    core.debug(`repository: ${repository}`);
+    const token: string = process.env.GITHUB_TOKEN as string;
+    const octokit = github.getOctokit(token);
 
-    const owner = github.context.repo.owner;
-    core.debug(`owner: ${owner}`);
+    const files = await glob(targets);
 
-    const issue = github.context.payload.number;
-    core.debug(`issue: ${issue}`);
+    core.info(`Uploading files: ${JSON.stringify(files)}`);
 
-    const releasePayload = github.context.payload as Webhooks.Webhooks.WebhookPayloadRelease;
-
-    for (const element of releasePayload.release.assets) {
-      core.info(`browser_download_url: ${element.browser_download_url}`);
-      core.info(`name: ${element.name}`);
-      core.info(`content_type: ${element.content_type}`);
-    }
-
-    //const github = new GitHub(process.env.GITHUB_TOKEN);
-    //const aa = github.context.payload as WebhookPayload.
-    //const token = core.getInput("repo-token");
-    // const octokit1 = github.getOctokit(token);
-    // github.context.payload.repository?.owner
-
-    // const assets = octokit1.repos.listReleaseAssets(
-    //   github.context.payload.repository?.owner,
-    //   github.context.payload.repository
-    //   // repo,
-    //   // release_id,
-    // );
-    //const assets = github.context.repo.repo octokit .repos.listReleaseAssets();
-
-    // const pullNumber = context.payload.pull_request.number;
-    // const octokit = github.getOctokit(GITHUB_TOKEN);
-    // const owner = context.payload.sender.login;
-    // const repo = context.payload.repository.name;
-    // const newComment = octokit.issues.createComment({
-    //   owner,
-    //   repo,
-    //   issue_number: pullNumber,
-    //   body,
-    // });
-
-    // octokit.repos.listReleaseAssets({
-    //   owner,
-    //   repo,
-    //   release_id,
-    // });
-    // Parameters
-
-    // if (github.context.ref.startsWith("refs/heads")) {
-    //   core.debug("Headers");
-    //   //const refs = github.context.ref.split('/');
-    //   //version = github.context.ref.replace('refs/tags/release/', '');
-    //   const branchName = github.context.ref.split("/").pop();
-    //   const runNumber = github.context.runNumber;
-    //   core.debug(`branchName: ${branchName}`);
-    //   core.debug(`runNumber: ${runNumber}`);
-
-    //   version = `${branchName}.${runNumber}`;
-    // } else if (github.context.ref.startsWith("refs/tags/")) {
-    //   core.debug("Tag");
-    //   const tagName = github.context.ref.split("/").pop();
-    //   core.debug(`tagName: ${tagName}`);
-
-    //   version = `${tagName}`;
-    // }
-
-    // if (version.toLocaleUpperCase().startsWith("V")) {
-    //   version = version.substr(1);
-    // }
-
-    // core.debug(`Version: ${version}`);
-    // core.setOutput("version", version);
-    // core.info(`Version: ${version}`);
+    await Promise.all(
+      files.map(async file => {
+        core.info(`Uploading ${file} ...`);
+        await uploadFile(octokit, uploadUrl, file);
+      })
+    );
   } catch (error) {
     core.setFailed(error.message);
   }
