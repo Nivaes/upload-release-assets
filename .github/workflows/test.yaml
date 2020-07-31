@@ -20,6 +20,12 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: ./
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: none
+          targets: ./**/*.nupkg
+
       - name: Dump GitHub context
         continue-on-error: true
         env:

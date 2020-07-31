@@ -1756,6 +1756,7 @@ const fs = __importStar(__webpack_require__(747));
 const path = __importStar(__webpack_require__(622));
 const glob_1 = __importDefault(__webpack_require__(402));
 const mimeTypes = __importStar(__webpack_require__(779));
+const string_1 = __importDefault(__webpack_require__(591));
 async function glob(pattern) {
     return await new Promise((resolve, reject) => {
         return glob_1.default(pattern, (err, files) => {
@@ -1790,10 +1791,13 @@ async function uploadFile(octokit, uploadUrl, assetPath) {
 }
 async function run() {
     try {
+        const token = process.env.GITHUB_TOKEN;
+        if (string_1.default.isNullOrEmpty(token)) {
+            throw new Error("Not token definition");
+        }
+        const octokit = github.getOctokit(token);
         const uploadUrl = core.getInput("upload_url", { required: true });
         const targets = core.getInput("targets", { required: true });
-        const token = process.env.GITHUB_TOKEN;
-        const octokit = github.getOctokit(token);
         const files = await glob(targets);
         core.info(`Uploading files: ${JSON.stringify(files)}`);
         await Promise.all(files.map(async (file) => {
@@ -7042,6 +7046,22 @@ class HttpClient {
     }
 }
 exports.HttpClient = HttpClient;
+
+
+/***/ }),
+
+/***/ 591:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+class String {
+    static isNullOrEmpty(value) {
+        return !value || value === undefined || value === "" || value.length === 0;
+    }
+}
+exports.default = String;
 
 
 /***/ }),

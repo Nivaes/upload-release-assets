@@ -8,6 +8,8 @@ import * as path from "path";
 import callbackGlob from "glob";
 import * as mimeTypes from "mime-types";
 
+import String from "./string";
+
 async function glob(pattern: string): Promise<string[]> {
   return await new Promise((resolve, reject) => {
     return callbackGlob(pattern, (err, files) => {
@@ -45,11 +47,14 @@ async function uploadFile(octokit: Octokit, uploadUrl: string, assetPath: string
 
 async function run(): Promise<void> {
   try {
+    const token: string = process.env.GITHUB_TOKEN as string;
+    if (String.isNullOrEmpty(token)) {
+      throw new Error("Not token definition");
+    }
+    const octokit = github.getOctokit(token);
+
     const uploadUrl = core.getInput("upload_url", {required: true});
     const targets = core.getInput("targets", {required: true});
-
-    const token: string = process.env.GITHUB_TOKEN as string;
-    const octokit = github.getOctokit(token);
 
     const files = await glob(targets);
 

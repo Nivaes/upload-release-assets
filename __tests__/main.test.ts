@@ -2,6 +2,8 @@ import {wait} from "../src/wait";
 import * as process from "process";
 import * as cp from "child_process";
 import * as path from "path";
+import String from "../src/string";
+import {Z_UNKNOWN} from "zlib";
 
 test("throws invalid number", async () => {
   const input = parseInt("foo", 10);
@@ -25,3 +27,10 @@ test("wait 500 ms", async () => {
 //   }
 //   console.log(cp.execSync(`node ${ip}`, options).toString())
 // })
+
+test("String isNullOrEmpty", () => {
+  expect(String.isNullOrEmpty("uno")).toBeFalsy();
+  expect(String.isNullOrEmpty("")).toBeTruthy();
+  let v1;
+  expect(String.isNullOrEmpty(v1)).toBeTruthy();
+});
