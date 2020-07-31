@@ -1,6 +1,6 @@
-# Download Release Asset Action
+# Upload Release Asset Action
 
-Download all asset of a release.
+Upload several assets of a release.
 
 ## Example usage
 
