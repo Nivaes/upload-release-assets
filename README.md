@@ -2,13 +2,26 @@
 
 Download all asset of a release.
 
-Example usage
+## Example usage
 
 ````YML
 on:
-  release:
+    push:
 steps:
-    - name: Download Release Asset
-      uses: nivaes/download-release-assets@master
+    - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+    - name: Upload Release Asset
+      uses: nivaes/upload-release-assets@master
+      env:
+         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+         upload_url: ${{ steps.create_release.outputs.upload_url }}
+         targets: ./**/*.nupkg
 
 ````
