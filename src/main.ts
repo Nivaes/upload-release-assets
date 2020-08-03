@@ -45,6 +45,13 @@ async function uploadFile(octokit: Octokit, uploadUrl: string, assetPath: string
   });
 }
 
+async function deleteFile(octokit: Octokit, assetPath: string): Promise<void> {
+  const assetName = path.basename(assetPath);
+  await octokit.repos.deleteReleaseAsset({
+    name: assetName
+  });
+}
+
 async function run(): Promise<void> {
   try {
     const token: string = process.env.GITHUB_TOKEN as string;
@@ -63,6 +70,7 @@ async function run(): Promise<void> {
     await Promise.all(
       files.map(async file => {
         core.info(`Uploading ${file} ...`);
+        await deleteFile(octokit, file);
         await uploadFile(octokit, uploadUrl, file);
       })
     );
