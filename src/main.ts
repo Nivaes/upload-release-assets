@@ -47,6 +47,8 @@ async function uploadFile(octokit: Octokit, uploadUrl: string, assetPath: string
 
 async function deleteFile(octokit: Octokit, assetPath: string): Promise<void> {
   const assetName = path.basename(assetPath);
+
+  core.info(`Delete: ${assetPath}`);
   await octokit.repos.deleteReleaseAsset({
     name: assetName
   });

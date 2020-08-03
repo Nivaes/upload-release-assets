@@ -1791,6 +1791,7 @@ async function uploadFile(octokit, uploadUrl, assetPath) {
 }
 async function deleteFile(octokit, assetPath) {
     const assetName = path.basename(assetPath);
+    core.info(`Delete: ${assetPath}`);
     await octokit.repos.deleteReleaseAsset({
         name: assetName
     });
